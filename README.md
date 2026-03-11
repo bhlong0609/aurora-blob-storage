@@ -1,27 +1,37 @@
-# Aurora Blob Storage
+from flask import Flask, request, send_file
 
-Prototype distributed blob storage system.
+from client.uploader import upload_blob
+from client.downloader import download_blob
 
-Features:
+import os
 
-- Blob upload
-- Erasure coding
-- Multi storage nodes
-- RPC server
-- Blob reconstruction
+app = Flask(__name__)
 
-Architecture
 
-Client → RPC → Storage Nodes
+@app.route("/upload", methods=["POST"])
+def upload():
 
-Run server
+    file = request.files["file"]
 
-python main.py
+    path = f"/tmp/{file.filename}"
 
-Upload
+    file.save(path)
 
-curl -F "file=@video.mp4" localhost:8000/upload
+    blob_id = upload_blob(path)
 
-Download
+    return {"blob_id": blob_id}
 
-localhost:8000/download/<blob_id>
+
+@app.route("/download/<blob_id>")
+def download(blob_id):
+
+    output = f"/tmp/{blob_id}"
+
+    download_blob(blob_id, output)
+
+    return send_file(output)
+
+
+def start():
+
+    app.run(host="0.0.0.0", port=8000)

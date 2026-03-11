@@ -1,1 +1,33 @@
+import os
 
+from core.blob import file_hash
+from core.erasure import split_data, encode
+from core.node import StorageNode
+
+import config
+
+
+def upload_blob(path):
+
+    blob_id = file_hash(path)
+
+    with open(path, "rb") as f:
+        data = f.read()
+
+    shards = split_data(data, config.DATA_SHARDS)
+
+    parity = encode(shards)
+
+    shards.append(parity)
+
+    nodes = [StorageNode(p) for p in config.STORAGE_NODES]
+
+    for i, shard in enumerate(shards):
+
+        node = nodes[i % len(nodes)]
+
+        node.store(blob_id, i, shard)
+
+    print("Upload complete:", blob_id)
+
+    return blob_id
